@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ESC Cell — Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,500;0,9..40,700;1,9..40,300&display=swap');
+
+  :root {
+    --bg: #0e0f14;
+    --surface: #161820;
+    --surface2: #1e2030;
+    --border: #2a2d40;
+    --accent: #6ee7b7;
+    --accent2: #818cf8;
+    --accent3: #fb923c;
+    --accent4: #f472b6;
+    --text: #e2e4f0;
+    --muted: #6b7280;
+    --danger: #f87171;
+    --success: #34d399;
+    --mono: 'Space Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    position: fixed;
+    top: 0; left: 0;
+    width: 220px;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    z-index: 100;
+    padding: 24px 0;
+  }
+
+  .logo {
+    padding: 0 24px 24px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+  .logo h1 {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+  }
+  .logo p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .nav-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 24px;
+    cursor: pointer;
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 500;
+    transition: all 0.15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { color: var(--text); background: var(--surface2); }
+  .nav-item.active {
+    color: var(--accent);
+    background: rgba(110,231,183,0.07);
+    border-left-color: var(--accent);
+  }
+  .nav-item .icon { font-size: 16px; width: 20px; text-align: center; }
+
+  /* ── MAIN ── */
+  .main {
+    margin-left: 220px;
+    min-height: 100vh;
+  }
+
+  .topbar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+  }
+  .topbar h2 { font-size: 15px; font-weight: 700; color: var(--text); }
+  .topbar-meta { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .content { padding: 24px 28px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ── CARDS ── */
+  .cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 16px;
+    margin-bottom: 28px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    position: relative;
+    overflow: hidden;
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+  .card.green::before { background: var(--accent); }
+  .card.purple::before { background: var(--accent2); }
+  .card.orange::before { background: var(--accent3); }
+  .card.pink::before { background: var(--accent4); }
+  .card.red::before { background: var(--danger); }
+
+  .card-label {
+    font-size: 11px;
+    font-family: var(--mono);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--muted);
+    margin-bottom: 8px;
+  }
+  .card-value {
+    font-size: 22px;
+    font-weight: 700;
+    font-family: var(--mono);
+    color: var(--text);
+    line-height: 1.1;
+  }
+  .card-sub {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .card-icon {
+    position: absolute;
+    right: 16px; top: 16px;
+    font-size: 22px;
+    opacity: 0.3;
+  }
+
+  /* ── PANELS ── */
+  .panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+    margin-bottom: 24px;
+  }
+  .panels.three { grid-template-columns: 1fr 1fr 1fr; }
+  .panels.full { grid-template-columns: 1fr; }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .panel-header {
+    padding: 14px 18px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .panel-title {
+    font-family: var(--mono);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+  }
+  .panel-body { padding: 18px; }
+
+  /* ── TABLE ── */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(42,45,64,0.5);
+    color: var(--text);
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* ── BADGES ── */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    font-family: var(--mono);
+  }
+  .badge-green { background: rgba(52,211,153,0.12); color: #34d399; }
+  .badge-blue  { background: rgba(129,140,248,0.12); color: #818cf8; }
+  .badge-orange{ background: rgba(251,146,60,0.12);  color: #fb923c; }
+  .badge-pink  { background: rgba(244,114,182,0.12); color: #f472b6; }
+  .badge-gray  { background: rgba(107,114,128,0.12); color: #9ca3af; }
+  .badge-teal  { background: rgba(45,212,191,0.12);  color: #2dd4bf; }
+
+  /* ── FILTER BAR ── */
+  .filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+  }
+  .filter-bar label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+  .filter-bar input, .filter-bar select {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 7px 12px;
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    cursor: pointer;
+  }
+  .filter-bar input:focus, .filter-bar select:focus {
+    border-color: var(--accent2);
+  }
+  .filter-bar input[type="text"] { min-width: 200px; }
+
+  /* ── SEARCH ── */
+  .search-input {
+    width: 100%;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 8px 14px;
+    font-family: var(--sans);
+    font-size: 13px;
+    outline: none;
+    margin-bottom: 16px;
+  }
+  .search-input:focus { border-color: var(--accent2); }
+
+  /* ── LIST ITEM ── */
+  .list-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(42,45,64,0.5);
+  }
+  .list-item:last-child { border-bottom: none; }
+  .list-item .rank {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--muted);
+    width: 24px;
+    text-align: center;
+  }
+  .list-item .name { flex: 1; font-size: 13px; }
+  .list-item .val { font-family: var(--mono); font-size: 13px; color: var(--accent); }
+  .list-item .bar-bg { flex: 1; height: 4px; background: var(--border); border-radius: 2px; }
+  .list-item .bar-fg { height: 4px; background: var(--accent); border-radius: 2px; transition: width 0.4s; }
+
+  /* ── CHART CONTAINER ── */
+  .chart-container { position: relative; }
+  canvas { max-height: 240px; }
+
+  /* ── VALUE COLORS ── */
+  .pos { color: var(--success); }
+  .neg { color: var(--danger); }
+  .neu { color: var(--muted); }
+
+  /* ── PAGINATION ── */
+  .pagination {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 12px;
+    justify-content: flex-end;
+  }
+  .page-btn {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    padding: 4px 10px;
+    cursor: pointer;
+    font-size: 12px;
+    font-family: var(--mono);
+  }
+  .page-btn:hover { background: var(--border); }
+  .page-btn.active { background: var(--accent2); border-color: var(--accent2); color: #fff; }
+  .page-info { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+  /* ── MISC ── */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+  .section-title {
+    font-family: var(--mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+    margin-bottom: 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .empty { text-align: center; color: var(--muted); padding: 32px; font-size: 13px; }
+  .tag-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .tag {
+    display: inline-flex;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .tag.active-tag { border-color: var(--accent); color: var(--accent); background: rgba(110,231,183,0.08); }
+  .tag:hover { border-color: var(--text); color: var(--text); }
+</style>
+</head>
+<body>
+
+<div class="sidebar">
+  <div class="logo">
+    <h1>ESC CELL</h1>
+    <p>Backup 29/04/2026</p>
+  </div>
+  <div class="nav-item active" onclick="showPage('overview')">
+    <span class="icon">📊</span> Visão Geral
+  </div>
+  <div class="nav-item" onclick="showPage('sales')">
+    <span class="icon">💰</span> Vendas
+  </div>
+  <div class="nav-item" onclick="showPage('products')">
+    <span class="icon">📦</span> Produtos
+  </div>
+  <div class="nav-item" onclick="showPage('expenses')">
+    <span class="icon">🧾</span> Despesas
+  </div>
+  <div class="nav-item" onclick="showPage('fees')">
+    <span class="icon">💳</span> Taxas
+  </div>
+</div>
+
+<div class="main">
+  <div class="topbar">
+    <h2 id="page-title">Visão Geral</h2>
+    <span class="topbar-meta" id="topbar-meta">carregando...</span>
+  </div>
+
+  <div class="content">
+
+    <!-- ═══════════════════════ OVERVIEW ═══════════════════════ -->
+    <div class="page active" id="page-overview">
+      <div class="cards-grid" id="overview-cards"></div>
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Receita por Dia</span></div>
+          <div class="panel-body"><div class="chart-container"><canvas id="chart-daily"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Formas de Pagamento</span></div>
+          <div class="panel-body"><div class="chart-container"><canvas id="chart-payment"></canvas></div></div>
+        </div>
+      </div>
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Vendas por Categoria</span></div>
+          <div class="panel-body"><div class="chart-container"><canvas id="chart-category"></canvas></div></div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Top 10 Produtos Vendidos</span></div>
+          <div class="panel-body" id="top-products-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ SALES ═══════════════════════ -->
+    <div class="page" id="page-sales">
+      <div class="filter-bar">
+        <label>Buscar:</label>
+        <input type="text" class="filter-bar" id="sales-search" placeholder="produto ou método..." oninput="renderSalesTable()">
+        <label>Categoria:</label>
+        <select id="sales-cat-filter" onchange="renderSalesTable()">
+          <option value="">Todas</option>
+          <option value="impressao">Impressão</option>
+          <option value="vendas_produtos">Produtos</option>
+          <option value="manutencao">Manutenção</option>
+          <option value="bebidas_doces">Bebidas/Doces</option>
+        </select>
+        <label>Pagamento:</label>
+        <select id="sales-pay-filter" onchange="renderSalesTable()">
+          <option value="">Todos</option>
+          <option value="dinheiro">Dinheiro</option>
+          <option value="pix">PIX</option>
+          <option value="cartao_debito">Débito</option>
+          <option value="cartao_credito">Crédito</option>
+          <option value="cartao_credito_2x">Crédito 2x</option>
+          <option value="cartao_credito_3x">Crédito 3x</option>
+        </select>
+        <label>Ordenar:</label>
+        <select id="sales-sort" onchange="renderSalesTable()">
+          <option value="date-desc">Data ↓</option>
+          <option value="date-asc">Data ↑</option>
+          <option value="total-desc">Valor ↓</option>
+          <option value="total-asc">Valor ↑</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title" id="sales-count-label">Vendas</span>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Data</th>
+                  <th>Itens</th>
+                  <th>Categoria</th>
+                  <th>Pagamento</th>
+                  <th>Bruto</th>
+                  <th>Taxa</th>
+                  <th>Desconto</th>
+                  <th>Líquido</th>
+                </tr>
+              </thead>
+              <tbody id="sales-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="sales-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ PRODUCTS ═══════════════════════ -->
+    <div class="page" id="page-products">
+      <div class="filter-bar">
+        <input type="text" class="filter-bar" id="prod-search" placeholder="buscar produto..." oninput="renderProductsTable()">
+        <label>Categoria:</label>
+        <select id="prod-cat-filter" onchange="renderProductsTable()">
+          <option value="">Todas</option>
+          <option value="impressao">Impressão</option>
+          <option value="vendas_produtos">Produtos</option>
+          <option value="manutencao">Manutenção</option>
+          <option value="bebidas_doces">Bebidas/Doces</option>
+          <option value="perfume">Perfume</option>
+        </select>
+        <label>Ordenar:</label>
+        <select id="prod-sort" onchange="renderProductsTable()">
+          <option value="name-asc">Nome ↑</option>
+          <option value="price-desc">Preço ↓</option>
+          <option value="stock-desc">Estoque ↓</option>
+          <option value="margin-desc">Margem ↓</option>
+        </select>
+      </div>
+      <div class="panel">
+        <div class="panel-header">
+          <span class="panel-title" id="prod-count-label">Produtos</span>
+        </div>
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Produto</th>
+                  <th>Categoria</th>
+                  <th>Preço</th>
+                  <th>Custo</th>
+                  <th>Margem</th>
+                  <th>Estoque</th>
+                  <th>Val. Estoque</th>
+                  <th>Criado em</th>
+                </tr>
+              </thead>
+              <tbody id="prod-tbody"></tbody>
+            </table>
+          </div>
+          <div class="pagination" id="prod-pagination"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ EXPENSES ═══════════════════════ -->
+    <div class="page" id="page-expenses">
+      <div class="cards-grid" id="expense-cards"></div>
+      <div class="panel">
+        <div class="panel-header"><span class="panel-title">Despesas</span></div>
+        <div class="panel-body" style="padding:0">
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>#</th><th>Descrição</th><th>Valor</th><th>Data</th><th>% do Total</th></tr></thead>
+              <tbody id="expense-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══════════════════════ FEES ═══════════════════════ -->
+    <div class="page" id="page-fees">
+      <div class="cards-grid" id="fee-cards"></div>
+      <div class="panels">
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Taxas Configuradas</span></div>
+          <div class="panel-body" style="padding:0">
+            <table>
+              <thead><tr><th>Modalidade</th><th>Taxa (%)</th><th>Ex: R$100 → líquido</th></tr></thead>
+              <tbody id="fees-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="panel">
+          <div class="panel-header"><span class="panel-title">Taxas Cobradas nas Vendas</span></div>
+          <div class="panel-body"><div class="chart-container"><canvas id="chart-fees-paid"></canvas></div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ═══════════ DATA ═══════════
+const RAW = __DATA_PLACEHOLDER__;
+
+const { products, sales, cardFees, expenses } = RAW;
+
+// ═══════════ HELPERS ═══════════
+const R = (n) => 'R$ ' + Number(n).toFixed(2).replace('.', ',');
+const PCT = (n) => Number(n).toFixed(1) + '%';
+
+function catBadge(cat) {
+  const map = {
+    impressao: ['Impressão', 'badge-blue'],
+    vendas_produtos: ['Produtos', 'badge-orange'],
+    manutencao: ['Manutenção', 'badge-pink'],
+    bebidas_doces: ['Bebidas/Doces', 'badge-teal'],
+    perfume: ['Perfume', 'badge-purple'],
+  };
+  const [label, cls] = map[cat] || ['Sem categoria', 'badge-gray'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function payBadge(p) {
+  const map = {
+    dinheiro: ['Dinheiro', 'badge-green'],
+    pix: ['PIX', 'badge-blue'],
+    cartao_debito: ['Débito', 'badge-orange'],
+    cartao_credito: ['Crédito', 'badge-pink'],
+    cartao_credito_2x: ['Créd. 2x', 'badge-pink'],
+    cartao_credito_3x: ['Créd. 3x', 'badge-pink'],
+    senff_1x: ['Senff 1x', 'badge-gray'],
+  };
+  const [label, cls] = map[p] || [p || '—', 'badge-gray'];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function fmtDate(d) {
+  const dt = new Date(d);
+  return dt.toLocaleDateString('pt-BR') + ' ' + dt.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit'});
+}
+
+function fmtDateShort(d) {
+  return new Date(d).toLocaleDateString('pt-BR', {day:'2-digit',month:'2-digit'});
+}
+
+// ═══════════ CHARTS REGISTRY ═══════════
+const charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+function mkChart(id, cfg) {
+  destroyChart(id);
+  const ctx = document.getElementById(id);
+  if (!ctx) return;
+  charts[id] = new Chart(ctx, cfg);
+}
+
+const chartDefaults = {
+  color: '#6b7280',
+  font: { family: "'DM Sans', sans-serif", size: 12 },
+};
+Chart.defaults.color = '#6b7280';
+Chart.defaults.font.family = "'DM Sans', sans-serif";
+
+const palette = ['#6ee7b7','#818cf8','#fb923c','#f472b6','#2dd4bf','#a78bfa','#fbbf24','#34d399'];
+
+// ═══════════ OVERVIEW ═══════════
+function buildOverview() {
+  const totalGross = sales.reduce((a, s) => a + s.totalGross, 0);
+  const totalNet   = sales.reduce((a, s) => a + s.totalNet,   0);
+  const totalCost  = sales.reduce((a, s) => a + s.totalCost,  0);
+  const totalFees  = sales.reduce((a, s) => a + s.cardFeeValue, 0);
+  const totalDisc  = sales.reduce((a, s) => a + s.discountValue, 0);
+  const totalExp   = expenses.reduce((a, e) => a + e.amount, 0);
+  const profit     = totalNet - totalCost - totalExp;
+  const margin     = totalGross > 0 ? (profit / totalGross) * 100 : 0;
+
+  const cards = [
+    { label: 'Receita Bruta',   value: R(totalGross), sub: `${sales.length} vendas`, color:'green', icon:'💵' },
+    { label: 'Receita Líquida', value: R(totalNet),   sub: `após taxas e descontos`, color:'purple', icon:'💸' },
+    { label: 'Custo Total',     value: R(totalCost),  sub: `custo dos produtos`,    color:'orange', icon:'📉' },
+    { label: 'Despesas',        value: R(totalExp),   sub: `${expenses.length} lançamentos`, color:'pink', icon:'🧾' },
+    { label: 'Lucro Estimado',  value: R(profit),     sub: `margem ${PCT(margin)}`, color: profit>=0?'green':'red', icon:'📈' },
+    { label: 'Taxas de Cartão', value: R(totalFees),  sub: `descontado nas vendas`, color:'orange', icon:'💳' },
+    { label: 'Descontos',       value: R(totalDisc),  sub: `total descontado`, color:'pink', icon:'🏷️' },
+    { label: 'Produtos',        value: products.length, sub: `${products.reduce((a,p)=>a+p.stock,0)} itens em estoque`, color:'purple', icon:'📦' },
+  ];
+
+  document.getElementById('overview-cards').innerHTML = cards.map(c => `
+    <div class="card ${c.color}">
+      <span class="card-icon">${c.icon}</span>
+      <div class="card-label">${c.label}</div>
+      <div class="card-value">${c.value}</div>
+      <div class="card-sub">${c.sub}</div>
+    </div>
+  `).join('');
+
+  // Daily revenue chart
+  const byDay = {};
+  sales.forEach(s => {
+    const d = new Date(s.date).toISOString().slice(0,10);
+    byDay[d] = (byDay[d] || 0) + s.totalGross;
+  });
+  const days = Object.keys(byDay).sort();
+  mkChart('chart-daily', {
+    type: 'bar',
+    data: {
+      labels: days.map(fmtDateShort),
+      datasets: [{
+        label: 'Receita Bruta',
+        data: days.map(d => byDay[d]),
+        backgroundColor: 'rgba(110,231,183,0.25)',
+        borderColor: '#6ee7b7',
+        borderWidth: 1.5,
+        borderRadius: 4,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { maxRotation: 45 } },
+        y: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => 'R$'+v } }
+      }
+    }
+  });
+
+  // Payment chart
+  const byPay = {};
+  sales.forEach(s => { const p = s.paymentMethod || 'sem info'; byPay[p] = (byPay[p]||0) + s.totalGross; });
+  const payLabels = { dinheiro:'Dinheiro', pix:'PIX', cartao_debito:'Débito', cartao_credito:'Crédito', cartao_credito_2x:'Créd. 2x', cartao_credito_3x:'Créd. 3x' };
+  mkChart('chart-payment', {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(byPay).map(k => payLabels[k]||k),
+      datasets: [{ data: Object.values(byPay), backgroundColor: palette, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 12 } } }
+    }
+  });
+
+  // Category chart
+  const byCat = {};
+  sales.forEach(s => { const c = s.category||'outros'; byCat[c] = (byCat[c]||0) + s.totalGross; });
+  const catLabels = { impressao:'Impressão', vendas_produtos:'Produtos', manutencao:'Manutenção', bebidas_doces:'Beb/Doces' };
+  mkChart('chart-category', {
+    type: 'bar',
+    data: {
+      labels: Object.keys(byCat).map(k => catLabels[k]||k),
+      datasets: [{
+        label: 'Receita',
+        data: Object.values(byCat),
+        backgroundColor: palette,
+        borderRadius: 6,
+        borderWidth: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      indexAxis: 'y',
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.04)' }, ticks: { callback: v => 'R$'+v } },
+        y: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Top products
+  const prodRevenue = {};
+  sales.forEach(s => s.items.forEach(it => {
+    prodRevenue[it.productName] = (prodRevenue[it.productName]||0) + (it.unitPrice * it.quantity);
+  }));
+  const sorted = Object.entries(prodRevenue).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  const max = sorted[0]?.[1] || 1;
+  document.getElementById('top-products-list').innerHTML = sorted.map(([name, val], i) => `
+    <div class="list-item">
+      <span class="rank">${i+1}</span>
+      <span class="name">${name}</span>
+      <div class="bar-bg"><div class="bar-fg" style="width:${(val/max*100).toFixed(0)}%"></div></div>
+      <span class="val">${R(val)}</span>
+    </div>
+  `).join('');
+
+  document.getElementById('topbar-meta').textContent = `${sales.length} vendas · backup 29/04/2026`;
+}
+
+// ═══════════ SALES TABLE ═══════════
+let salesPage = 1;
+const salesPageSize = 20;
+
+function getFilteredSales() {
+  const search = document.getElementById('sales-search').value.toLowerCase();
+  const cat    = document.getElementById('sales-cat-filter').value;
+  const pay    = document.getElementById('sales-pay-filter').value;
+  const sort   = document.getElementById('sales-sort').value;
+
+  let result = sales.filter(s => {
+    if (cat && s.category !== cat) return false;
+    if (pay && s.paymentMethod !== pay) return false;
+    if (search) {
+      const names = s.items.map(i => i.productName.toLowerCase()).join(' ');
+      const method = (s.paymentMethod||'').toLowerCase();
+      if (!names.includes(search) && !method.includes(search)) return false;
+    }
+    return true;
+  });
+
+  result.sort((a, b) => {
+    if (sort === 'date-desc') return new Date(b.date) - new Date(a.date);
+    if (sort === 'date-asc')  return new Date(a.date) - new Date(b.date);
+    if (sort === 'total-desc') return b.totalGross - a.totalGross;
+    if (sort === 'total-asc')  return a.totalGross - b.totalGross;
+    return 0;
+  });
+  return result;
+}
+
+function renderSalesTable() {
+  salesPage = 1;
+  renderSalesPage();
+}
+
+function renderSalesPage() {
+  const filtered = getFilteredSales();
+  const total = filtered.length;
+  const start = (salesPage-1) * salesPageSize;
+  const slice = filtered.slice(start, start + salesPageSize);
+
+  document.getElementById('sales-count-label').textContent = `${total} vendas encontradas`;
+
+  const tbody = document.getElementById('sales-tbody');
+  tbody.innerHTML = slice.map(s => {
+    const items = s.items.map(i => `${i.productName} ×${i.quantity}`).join(', ');
+    return `<tr>
+      <td style="white-space:nowrap;font-family:var(--mono);font-size:12px">${fmtDate(s.date)}</td>
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${items}">${items}</td>
+      <td>${catBadge(s.category)}</td>
+      <td>${payBadge(s.paymentMethod)}</td>
+      <td style="font-family:var(--mono)">${R(s.totalGross)}</td>
+      <td style="font-family:var(--mono);color:var(--danger)">${s.cardFeeValue > 0 ? '-'+R(s.cardFeeValue) : '—'}</td>
+      <td style="font-family:var(--mono);color:var(--accent3)">${s.discountValue > 0 ? '-'+R(s.discountValue) : '—'}</td>
+      <td style="font-family:var(--mono);color:var(--success)">${R(s.totalNet)}</td>
+    </tr>`;
+  }).join('');
+
+  // Pagination
+  const pages = Math.ceil(total / salesPageSize);
+  renderPagination('sales-pagination', pages, salesPage, (p) => { salesPage = p; renderSalesPage(); });
+}
+
+// ═══════════ PRODUCTS TABLE ═══════════
+let prodPage = 1;
+const prodPageSize = 20;
+
+function getFilteredProducts() {
+  const search = document.getElementById('prod-search').value.toLowerCase();
+  const cat    = document.getElementById('prod-cat-filter').value;
+  const sort   = document.getElementById('prod-sort').value;
+
+  let result = products.filter(p => {
+    if (cat && (p.category||'') !== cat) return false;
+    if (search && !p.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  result.sort((a, b) => {
+    const ma = ((a.price - a.cost) / a.price * 100) || 0;
+    const mb = ((b.price - b.cost) / b.price * 100) || 0;
+    if (sort === 'name-asc')    return a.name.localeCompare(b.name);
+    if (sort === 'price-desc')  return b.price - a.price;
+    if (sort === 'stock-desc')  return b.stock - a.stock;
+    if (sort === 'margin-desc') return mb - ma;
+    return 0;
+  });
+  return result;
+}
+
+function renderProductsTable() {
+  prodPage = 1;
+  renderProductsPage();
+}
+
+function renderProductsPage() {
+  const filtered = getFilteredProducts();
+  const total = filtered.length;
+  const start = (prodPage-1) * prodPageSize;
+  const slice = filtered.slice(start, start + prodPageSize);
+
+  document.getElementById('prod-count-label').textContent = `${total} produtos`;
+
+  const tbody = document.getElementById('prod-tbody');
+  tbody.innerHTML = slice.map(p => {
+    const margin = p.price > 0 ? ((p.price - p.cost) / p.price * 100) : 0;
+    const marginCls = margin >= 50 ? 'pos' : margin >= 25 ? '' : 'neg';
+    return `<tr>
+      <td>${p.name}</td>
+      <td>${catBadge(p.category||'')}</td>
+      <td style="font-family:var(--mono)">${R(p.price)}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${R(p.cost)}</td>
+      <td style="font-family:var(--mono)" class="${marginCls}">${PCT(margin)}</td>
+      <td style="font-family:var(--mono)">${p.stock}</td>
+      <td style="font-family:var(--mono);color:var(--muted)">${R(p.cost * p.stock)}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${new Date(p.createdAt).toLocaleDateString('pt-BR')}</td>
+    </tr>`;
+  }).join('');
+
+  const pages = Math.ceil(total / prodPageSize);
+  renderPagination('prod-pagination', pages, prodPage, (p) => { prodPage = p; renderProductsPage(); });
+}
+
+// ═══════════ EXPENSES ═══════════
+function buildExpenses() {
+  const total = expenses.reduce((a, e) => a + e.amount, 0);
+
+  document.getElementById('expense-cards').innerHTML = `
+    <div class="card red">
+      <span class="card-icon">🧾</span>
+      <div class="card-label">Total Despesas</div>
+      <div class="card-value">${R(total)}</div>
+      <div class="card-sub">${expenses.length} lançamentos</div>
+    </div>
+    <div class="card orange">
+      <span class="card-icon">📊</span>
+      <div class="card-label">Média por Despesa</div>
+      <div class="card-value">${R(total / expenses.length)}</div>
+    </div>
+    <div class="card pink">
+      <span class="card-icon">💰</span>
+      <div class="card-label">Maior Despesa</div>
+      <div class="card-value">${R(Math.max(...expenses.map(e=>e.amount)))}</div>
+      <div class="card-sub">${expenses.sort((a,b)=>b.amount-a.amount)[0]?.description}</div>
+    </div>
+  `;
+
+  document.getElementById('expense-tbody').innerHTML = expenses.map((e, i) => {
+    const pct = (e.amount / total * 100).toFixed(1);
+    return `<tr>
+      <td style="font-family:var(--mono);color:var(--muted)">${i+1}</td>
+      <td>${e.description}</td>
+      <td style="font-family:var(--mono);color:var(--danger)">${R(e.amount)}</td>
+      <td style="font-family:var(--mono);font-size:12px">${new Date(e.date).toLocaleDateString('pt-BR')}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="width:80px;height:6px;background:var(--border);border-radius:3px">
+            <div style="width:${pct}%;height:6px;background:var(--danger);border-radius:3px"></div>
+          </div>
+          <span style="font-family:var(--mono);font-size:12px">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ═══════════ FEES PAGE ═══════════
+function buildFees() {
+  const totalFees = sales.reduce((a, s) => a + s.cardFeeValue, 0);
+  const cardSales = sales.filter(s => s.cardFeeValue > 0);
+  const avgFee = cardSales.length ? totalFees / cardSales.length : 0;
+
+  document.getElementById('fee-cards').innerHTML = `
+    <div class="card orange">
+      <span class="card-icon">💳</span>
+      <div class="card-label">Total Taxas Pagas</div>
+      <div class="card-value">${R(totalFees)}</div>
+      <div class="card-sub">${cardSales.length} vendas com taxa</div>
+    </div>
+    <div class="card purple">
+      <span class="card-icon">📊</span>
+      <div class="card-label">Média por Venda</div>
+      <div class="card-value">${R(avgFee)}</div>
+    </div>
+    <div class="card pink">
+      <span class="card-icon">%</span>
+      <div class="card-label">Taxa Média Efetiva</div>
+      <div class="card-value">${PCT(sales.reduce((a,s)=>a+s.cardFeePercent,0)/sales.length)}</div>
+    </div>
+  `;
+
+  const feeNames = { credito:'Crédito 1x', debito:'Débito', credito_2x:'Crédito 2x', credito_3x:'Crédito 3x', senff_1x:'Senff 1x' };
+  document.getElementById('fees-tbody').innerHTML = Object.entries(cardFees).map(([k, v]) => `
+    <tr>
+      <td>${feeNames[k]||k}</td>
+      <td style="font-family:var(--mono);color:var(--accent3)">${v}%</td>
+      <td style="font-family:var(--mono);color:var(--muted)">R$ ${(100 - v).toFixed(2).replace('.',',')}</td>
+    </tr>
+  `).join('');
+
+  // Fees by payment method chart
+  const feesByMethod = {};
+  sales.forEach(s => {
+    if (s.cardFeeValue > 0) {
+      const p = s.paymentMethod || 'outros';
+      feesByMethod[p] = (feesByMethod[p]||0) + s.cardFeeValue;
+    }
+  });
+  const payLabels = { cartao_debito:'Débito', cartao_credito:'Créd. 1x', cartao_credito_2x:'Créd. 2x', cartao_credito_3x:'Créd. 3x' };
+  mkChart('chart-fees-paid', {
+    type: 'doughnut',
+    data: {
+      labels: Object.keys(feesByMethod).map(k => payLabels[k]||k),
+      datasets: [{ data: Object.values(feesByMethod), backgroundColor: palette, borderWidth: 0 }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { position: 'bottom', labels: { padding: 12, boxWidth: 12 } } }
+    }
+  });
+}
+
+// ═══════════ PAGINATION ═══════════
+function renderPagination(elId, pages, current, cb) {
+  const el = document.getElementById(elId);
+  if (pages <= 1) { el.innerHTML = ''; return; }
+  let html = `<span class="page-info">${(current-1)*salesPageSize+1}–${Math.min(current*salesPageSize, pages*salesPageSize)} de ${pages*salesPageSize}</span>`;
+  html += `<button class="page-btn" onclick="(${cb.toString()})(${current-1})" ${current===1?'disabled':''}>‹</button>`;
+  for (let p = Math.max(1,current-2); p <= Math.min(pages, current+2); p++) {
+    html += `<button class="page-btn ${p===current?'active':''}" onclick="(${cb.toString()})(${p})">${p}</button>`;
+  }
+  html += `<button class="page-btn" onclick="(${cb.toString()})(${current+1})" ${current===pages?'disabled':''}>›</button>`;
+  el.innerHTML = html;
+}
+
+// ═══════════ NAVIGATION ═══════════
+const titles = { overview:'Visão Geral', sales:'Vendas', products:'Produtos', expenses:'Despesas', fees:'Taxas de Cartão' };
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if (n.textContent.trim().toLowerCase().includes(titles[id].toLowerCase().slice(0,4))) n.classList.add('active');
+  });
+  document.getElementById('page-title').textContent = titles[id];
+
+  if (id === 'overview')  buildOverview();
+  if (id === 'sales')     renderSalesTable();
+  if (id === 'products')  renderProductsTable();
+  if (id === 'expenses')  buildExpenses();
+  if (id === 'fees')      buildFees();
+}
+
+// Proper nav click binding
+document.querySelectorAll('.nav-item').forEach((el, i) => {
+  const ids = ['overview','sales','products','expenses','fees'];
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    showPage(ids[i]);
+  });
+});
+
+// ═══════════ INIT ═══════════
+buildOverview();
+</script>
+</body>
+</html>
